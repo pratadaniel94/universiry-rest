@@ -1,12 +1,12 @@
 from flask import Blueprint, jsonify, request
-from workers import read_json, write_json
+from workers.operator_sqlite3 import *
 
 disciplina = Blueprint('disciplina', __name__, url_prefix='/disciplina')
 
 @disciplina.route('/<int:id>', methods=['GET', 'DELETE', 'PUT'])
 @disciplina.route('', methods=['GET', 'POST'])
 def manipular_disciplina(id=None):
-    disciplinas = read_json('disciplinas')
+    disciplinas = select_all('disciplinas')
     if request.method == "GET":
         if id == None:
             return jsonify(disciplinas)
@@ -23,8 +23,10 @@ def manipular_disciplina(id=None):
             keys = data.keys()
             if all(['id' in keys, 'nome' in keys,
                    'data' in keys,'status' in keys, 'id_coordenador' in keys,
-                   'plano_ensino' in keys, 'carga_horario' in keys]):
-                write_json('disciplinas', data)
+                   'plano_ensino' in keys, 'carga_horaria' in keys]):
+                operator_sql("insert into disciplinas values ('{}','{}','{}','{}','{}','{}','{}')".format(
+                    data['id'], data['nome'], data['carga_horaria'], data['data'], data['id_coordenador'],
+                    data['plano_ensino'], data['status']))
                 return jsonify({"mensagem": "disciplina 'id {} nome: {}'registrado com sucesso".format(data['id'], data['nome'])})
             else:
                 return jsonify({"mensagem": "json invalid"}), 400
@@ -34,7 +36,7 @@ def manipular_disciplina(id=None):
     if request.method == "DELETE":
         for disciplina in disciplinas:
             if id == disciplina['id']:
-                write_json('disciplinas', disciplina, 'remove')
+                operator_sql("delete from disciplinas where id='{}'".format(id))
                 return jsonify({"mensagem": "disciplina removido com sucesso!"})
         else:
             return jsonify({"mensagem": "disciplina não encontrado"}), 404
@@ -48,7 +50,7 @@ def manipular_disciplina(id=None):
                     'plano_ensino' in keys, 'carga_horario' in keys]):
                 for disciplina in disciplinas:
                     if disciplina['id'] == id:
-                        write_json('disciplinas', disciplina, acao='update', update=data)
+                        operator_sql("update disciplinas set id='{}',nome='{}',carga_horaria='{}',data='{}',id_coordenador='{}',plano_ensino='{}',status='{}' where id='{}'".format(id))
                         return jsonify({"mensagem": "disciplina atualizado com sucesso!"})
                 else:
                     return jsonify({"mensagem": "disciplina não encontrado"}),404

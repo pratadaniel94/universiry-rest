@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from workers import read_json, write_json
+from workers.operator_sqlite3 import *
 
 
 coord = Blueprint('coordenador', __name__, url_prefix='/coordenador')
@@ -7,7 +7,7 @@ coord = Blueprint('coordenador', __name__, url_prefix='/coordenador')
 @coord.route('/<int:id>', methods=['GET', 'DELETE', 'PUT'])
 @coord.route('', methods=['GET', 'POST'])
 def manipular_alunos(id=None):
-    coords = read_json('coordenadores')
+    coords = select_all('coordenadores')
     if request.method == "GET":
         if id == None:
             return jsonify(coords)
@@ -22,7 +22,7 @@ def manipular_alunos(id=None):
         data = request.json
         if data:
             if 'id' in data.keys() and 'nome' in data.keys():
-                write_json('coordenadores', data)
+                operator_sql("insert into coordenadores values ('{}','{}')".format(data['id'], data['nome']))
                 return jsonify({"mensagem": "coordenador 'id {} nome: {}'registrado com sucesso".format(data['id'], data['nome'])})
             else:
                 return jsonify({"mensagem": "json invalid"}), 400
@@ -32,7 +32,7 @@ def manipular_alunos(id=None):
     if request.method == "DELETE":
         for coord in coords:
             if id == coord['id']:
-                write_json('coordenadores', coord, 'remove')
+                operator_sql("delete from coordenadores where id='{}'".format(id))
                 return jsonify({"mensagem": "coordenador removido com sucesso!"})
         else:
             return jsonify({"mensagem": "coordenador não encontrado"}), 404
@@ -43,7 +43,7 @@ def manipular_alunos(id=None):
             if 'id' in data.keys() and 'nome' in data.keys():
                 for coord in coords:
                     if coord['id'] == id:
-                        write_json('coordenadores', coord, acao='update', update=data)
+                        operator_sql("update coordenadores set nome='{}', id='{}' where id='{}'".format(data['nome'], data['id'], id))
                         return jsonify({"mensagem": "coordenador atualizado com sucesso!"})
                 else:
                     return jsonify({"mensagem": "coordenador não encontrado"}),404

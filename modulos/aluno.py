@@ -1,13 +1,15 @@
 from flask import Blueprint, jsonify, request
-from workers import read_json, write_json
+from workers.operator_sqlite3 import *
 
 aluno = Blueprint('aluno', __name__, url_prefix='/aluno')
 
 
-@aluno.route('/<int:id>', methods=['GET', 'DELETE', 'PUT'])
+
+
+@aluno.route('/<string:id>', methods=['GET', 'DELETE', 'PUT'])
 @aluno.route('', methods=['GET', 'POST'])
 def manipular_alunos(id=None):
-    alunos = read_json('alunos')
+    alunos = select_all('alunos')
     if request.method == "GET":
         if id == None:
             return jsonify(alunos)
@@ -22,7 +24,7 @@ def manipular_alunos(id=None):
         data = request.json
         if data:
             if 'id' in data.keys() and 'nome' in data.keys():
-                write_json('alunos', data)
+                operator_sql("insert into alunos values ('{}','{}')".format(data['id'], data['nome']))
                 return jsonify({"mensagem": "Aluno 'id {} nome: {}'registrado com sucesso".format(data['id'], data['nome'])})
             else:
                 return jsonify({"mensagem": "json invalid"}), 400
@@ -32,7 +34,7 @@ def manipular_alunos(id=None):
     if request.method == "DELETE":
         for aluno in alunos:
             if id == aluno['id']:
-                write_json('alunos', aluno, 'remove')
+                operator_sql("delete from alunos where id='{}'".format(id))
                 return jsonify({"mensagem": "aluno removido com sucesso!"})
         else:
             return jsonify({"mensagem": "aluno não encontrado"}), 404
@@ -43,10 +45,10 @@ def manipular_alunos(id=None):
             if 'id' in data.keys() and 'nome' in data.keys():
                 for aluno in alunos:
                     if aluno['id'] == id:
-                        write_json('alunos', aluno, acao='update', update=data)
+                        operator_sql("update alunos set nome='{}', id='{}' where id='{}'".format(data['nome'], data['id'], id))
                         return jsonify({"mensagem": "aluno atualizado com sucesso!"})
                 else:
-                    return jsonify({"mensagem": "aluno não encontrado"}),404
+                    return jsonify({"mensagem": "aluno não encontrado"}), 404
             else:
                 return jsonify({"mensagem": "json invalid"}), 400
         else:

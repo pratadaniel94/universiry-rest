@@ -1,12 +1,12 @@
 from flask import Blueprint, jsonify, request
-from workers import read_json, write_json
+from workers.operator_sqlite3 import *
 
 professor = Blueprint('professor', __name__, url_prefix='/professor')
 
 @professor.route('/<int:id>', methods=['GET', 'DELETE', 'PUT'])
 @professor.route('', methods=['GET', 'POST'])
 def manipular_professores(id=None):
-    professsores = read_json('professores')
+    professsores = select_all('professores')
     if request.method == "GET":
         if id == None:
             return jsonify(professsores)
@@ -22,7 +22,7 @@ def manipular_professores(id=None):
         if data:
             keys = data.keys()
             if 'id' in keys and 'nome' in keys and 'matricula' in keys:
-                write_json('professores', data)
+                operator_sql("insert into professsores values ('{}','{}','{}')".format(data['id'], data['nome', data['matricula']]))
                 return jsonify(
                     {"mensagem": "Professor 'id {} nome: {}'registrado com sucesso".format(data['id'], data['nome'])})
             else:
@@ -33,7 +33,7 @@ def manipular_professores(id=None):
     if request.method == "DELETE":
         for prof in professsores:
             if id == prof['id']:
-                write_json('professores', prof, 'remove')
+                operator_sql("delete from professsores where id='{}'".format(id))
                 return jsonify({"mensagem": "professor removido com sucesso!"})
         else:
             return jsonify({"mensagem": "professor não encontrado"}), 404
@@ -45,7 +45,7 @@ def manipular_professores(id=None):
             if 'id' in keys and 'nome' in keys and 'matricula' in keys:
                 for prof in professsores:
                     if prof['id'] == id:
-                        write_json('professores', prof, acao='update', update=data)
+                        operator_sql("update professsores set nome='{}', id='{}', matricula='{}' where id='{}'".format(data['nome'], data['id'],data['matricula'], id))
                         return jsonify({"mensagem": "professor atualizado com sucesso!"})
                 else:
                     return jsonify({"mensagem": "professor não encontrado"}), 404

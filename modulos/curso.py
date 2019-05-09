@@ -1,12 +1,12 @@
 from flask import Blueprint, jsonify, request
-from workers import read_json, write_json
+from workers.operator_sqlite3 import *
 
 curso = Blueprint('curso', __name__, url_prefix='/curso')
 
 @curso.route('/<int:id>', methods=['GET', 'DELETE', 'PUT'])
 @curso.route('', methods=['GET', 'POST'])
 def manipular_cursos(id=None):
-    cursos = read_json('cursos')
+    cursos = select_all('cursos')
     if request.method == "GET":
         if id == None:
             return jsonify(cursos)
@@ -21,7 +21,7 @@ def manipular_cursos(id=None):
         data = request.json
         if data:
             if 'id' in data.keys() and 'nome' in data.keys():
-                write_json('cursos', data)
+                operator_sql("insert into cursos values ('{}','{}')".format(data['id'], data['nome']))
                 return jsonify({"mensagem": "curso 'id {} nome: {}'registrado com sucesso".format(data['id'], data['nome'])})
             else:
                 return jsonify({"mensagem": "json invalid"}), 400
@@ -31,7 +31,7 @@ def manipular_cursos(id=None):
     if request.method == "DELETE":
         for curso in cursos:
             if id == curso['id']:
-                write_json('cursos', curso, 'remove')
+                operator_sql("delete from cursos where id='{}'".format(id))
                 return jsonify({"mensagem": "curso removido com sucesso!"})
         else:
             return jsonify({"mensagem": "curso não encontrado"}), 404
@@ -42,7 +42,7 @@ def manipular_cursos(id=None):
             if 'id' in data.keys() and 'nome' in data.keys():
                 for curso in cursos:
                     if curso['id'] == id:
-                        write_json('cursos', curso, acao='update', update=data)
+                        operator_sql("update cursos set nome='{}', id='{}' where id='{}'".format(data['nome'], data['id'], id))
                         return jsonify({"mensagem": "curso atualizado com sucesso!"})
                 else:
                     return jsonify({"mensagem": "curso não encontrado"}),404
